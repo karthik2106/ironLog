@@ -1,11 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
-import { Activity, BarChart3, CalendarDays, Dumbbell, History, LayoutDashboard, Library, LogOut, Settings, Timer } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { usePathname } from "next/navigation";
+import { Activity, BarChart3, CalendarDays, Dumbbell, History, LayoutDashboard, Library, Settings, Timer } from "lucide-react";
 import { Card } from "@/components/ui/card";
-import { AuthPanel } from "@/features/auth/auth-panel";
 import { useApp } from "@/features/auth/app-provider";
 import { cn } from "@/lib/utils";
 
@@ -21,8 +19,7 @@ const nav = [
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const router = useRouter();
-  const { authMode, signOut, isDemoMode } = useApp();
+  const { authMode, isDemoMode } = useApp();
 
   if (authMode === "loading") {
     return (
@@ -31,8 +28,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </main>
     );
   }
-
-  if (authMode === "signed-out") return <AuthPanel />;
 
   return (
     <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,rgba(215,255,95,0.08),transparent_30%),#08090b]">
@@ -67,19 +62,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <Timer className="size-4 text-accent" />
               Fast logging
             </div>
-            <p className="mb-4 text-xs leading-5 text-muted">Autosaves every set so refreshes and interruptions do not lose workouts.</p>
-            <Button
-              className="w-full"
-              size="sm"
-              variant="secondary"
-              onClick={async () => {
-                await signOut();
-                router.push("/auth");
-              }}
-            >
-              <LogOut className="size-4" />
-              Sign out
-            </Button>
+            <p className="text-xs leading-5 text-muted">Autosaves every set so refreshes and interruptions do not lose workouts.</p>
           </Card>
         </aside>
         <main className="min-w-0 pb-24 md:pb-0">

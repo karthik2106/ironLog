@@ -51,7 +51,6 @@ export function HistoryScreen() {
         oneRm: estimatedOneRepMax(bestSet?.weight ?? 0, bestSet?.reps ?? 0),
       };
     });
-  const calendarDays = buildCalendar(store);
 
   return (
     <AppShell>
@@ -105,27 +104,6 @@ export function HistoryScreen() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Workout calendar</CardTitle>
-            <CardDescription>Completed days, scheduled sessions, missed sessions, and rest days for this month.</CardDescription>
-          </CardHeader>
-          <CardContent className="grid grid-cols-7 gap-2">
-            {calendarDays.map((day) => (
-              <button
-                key={day.iso}
-                className={`min-h-20 rounded-2xl border p-2 text-left ${
-                  day.completed ? "border-accent bg-accent/10" : day.missed ? "border-red-400/40 bg-red-500/10" : day.scheduled ? "border-border bg-white/5" : "border-border bg-black/20"
-                }`}
-                onClick={() => day.session && alert(`${day.session.routineNameSnapshot}\n${day.session.exercises.length} exercises`)}
-              >
-                <p className="text-xs text-muted">{day.date.getDate()}</p>
-                <p className="mt-2 text-xs font-medium">{day.completed ? day.session?.routineNameSnapshot : day.missed ? "Missed" : day.scheduled ? day.routineName : "Rest"}</p>
-              </button>
-            ))}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
             <CardTitle>Recent entries</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
@@ -146,33 +124,6 @@ export function HistoryScreen() {
       </div>
     </AppShell>
   );
-}
-
-function buildCalendar(store: ReturnType<typeof useApp>["store"]) {
-  const today = new Date();
-  const start = new Date(today.getFullYear(), today.getMonth(), 1);
-  const end = new Date(today.getFullYear(), today.getMonth() + 1, 0);
-  const days = [];
-  for (let date = new Date(start); date <= end; date.setDate(date.getDate() + 1)) {
-    const current = new Date(date);
-    const iso = localDateKey(current);
-    const session = store.sessions.find((item) => item.status === "completed" && localDateKey(new Date(item.startedAt)) === iso);
-    const routine = store.routines.find((item) => !item.archivedAt && item.scheduledDays.includes(current.getDay()));
-    days.push({
-      date: current,
-      iso,
-      session,
-      completed: Boolean(session),
-      scheduled: Boolean(routine),
-      routineName: routine?.name,
-      missed: Boolean(routine && !session && current < today),
-    });
-  }
-  return days;
-}
-
-function localDateKey(date: Date) {
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 }
 
 function Metric({ label, value }: { label: string; value: string }) {

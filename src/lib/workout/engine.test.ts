@@ -13,7 +13,7 @@ import { createSeedStore } from "./seed";
 describe("workout engine", () => {
   it("creates a workout from an editable routine", () => {
     const store = createSeedStore();
-    const next = createWorkoutFromRoutine(store, "routine-push", "2026-07-07T10:00:00.000Z");
+    const next = createWorkoutFromRoutine(store, "routine-push-a", "2026-07-07T10:00:00.000Z");
     const session = next.sessions[0];
     expect(session.status).toBe("active");
     expect(session.exercises).toHaveLength(5);
@@ -22,7 +22,7 @@ describe("workout engine", () => {
   });
 
   it("saves completed sets and detects personal records", () => {
-    let store = createWorkoutFromRoutine(createSeedStore(), "routine-push", "2026-07-07T10:00:00.000Z");
+    let store = createWorkoutFromRoutine(createSeedStore(), "routine-push-a", "2026-07-07T10:00:00.000Z");
     const session = store.sessions[0];
     const set = session.exercises[0].sets[0];
     store = saveSet(store, session.id, set.id, {
@@ -36,8 +36,8 @@ describe("workout engine", () => {
   });
 
   it("restores unfinished workouts from state", () => {
-    const store = createWorkoutFromRoutine(createSeedStore(), "routine-pull");
-    expect(store.sessions.find((session) => session.status === "active")?.routineNameSnapshot).toBe("Pull");
+    const store = createWorkoutFromRoutine(createSeedStore(), "routine-pull-a");
+    expect(store.sessions.find((session) => session.status === "active")?.routineNameSnapshot).toBe("Pull A");
   });
 
   it("completes a workout and summarizes it", () => {

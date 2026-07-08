@@ -80,16 +80,6 @@ export function SettingsScreen() {
               <Toggle label="Automatic rest timer" checked={store.settings.autoStartRestTimer} onChange={(checked) => app.updateSettings({ autoStartRestTimer: checked })} />
               <Toggle label="Sound notifications" checked={store.settings.soundEnabled} onChange={(checked) => app.updateSettings({ soundEnabled: checked })} />
               <Toggle label="Vibration notifications" checked={store.settings.vibrationEnabled} onChange={(checked) => app.updateSettings({ vibrationEnabled: checked })} />
-              <SettingRow label="Week start day">
-                <select
-                  className="min-h-11 rounded-2xl border border-border bg-black/25 px-3"
-                  value={store.settings.weekStartDay}
-                  onChange={(event) => app.updateSettings({ weekStartDay: Number(event.target.value) })}
-                >
-                  <option value={0}>Sunday</option>
-                  <option value={1}>Monday</option>
-                </select>
-              </SettingRow>
               <SettingRow label="Theme">
                 <select className="min-h-11 rounded-2xl border border-border bg-black/25 px-3" value={store.settings.theme} onChange={(event) => app.updateSettings({ theme: event.target.value as "system" | "dark" })}>
                   <option value="dark">Dark</option>

@@ -3,7 +3,6 @@
 import * as React from "react";
 import { toast } from "sonner";
 import { v4 as uuid } from "uuid";
-import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import {
   createWorkoutFromRoutine,
   duplicateRoutine,
@@ -12,7 +11,7 @@ import {
   saveSet,
   updateRoutineExercise,
 } from "@/lib/workout/engine";
-import { createSeedStore, demoProfile } from "@/lib/workout/seed";
+import { applyDefaultTrainingPlan, createSeedStore, demoProfile } from "@/lib/workout/seed";
 import type { Exercise, Routine, RoutineExercise, UserProfile, UserSettings, WorkoutSession, WorkoutStore } from "@/lib/workout/types";
 
 type AuthMode = "loading" | "signed-out" | "signed-in";
@@ -60,29 +59,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [store, setStore] = React.useState<WorkoutStore>(() => createSeedStore());
 
   React.useEffect(() => {
-    const supabase = createSupabaseBrowserClient();
     async function boot() {
-      if (supabase) {
-        const { data } = await supabase.auth.getSession();
-        if (data.session?.user) {
-          const profile: UserProfile = {
-            id: data.session.user.id,
-            email: data.session.user.email ?? "athlete@ironlog.local",
-            displayName: data.session.user.user_metadata.display_name ?? "Athlete",
-            createdAt: data.session.user.created_at,
-          };
-          setIsDemoMode(false);
-          setStore(loadStore(profile));
-          setAuthMode("signed-in");
-          return;
-        }
-      }
-
       const cloudToken = window.localStorage.getItem(CLOUD_TOKEN_KEY);
       if (cloudToken) {
         const cloud = await loadCloudStore(cloudToken);
         if (cloud) {
-          setStore(cloud.store);
+          setStore(applyDefaultTrainingPlan(cloud.store));
           setIsDemoMode(false);
           setAuthMode("signed-in");
           window.localStorage.setItem(ACTIVE_USER_KEY, JSON.stringify(cloud.profile));
@@ -94,11 +76,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       const activeUser = window.localStorage.getItem(ACTIVE_USER_KEY);
       if (activeUser) {
         const parsed = JSON.parse(activeUser) as UserProfile;
-        setStore(loadStore(parsed));
+        setStore(applyDefaultTrainingPlan(loadStore(parsed)));
         setIsDemoMode(parsed.id === demoProfile.id);
         setAuthMode("signed-in");
       } else {
-        setAuthMode("signed-out");
+        setStore(loadStore(demoProfile));
+        setIsDemoMode(true);
+        setAuthMode("signed-in");
       }
     }
     void boot();
@@ -127,29 +111,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       isDemoMode,
       store,
       async signIn(email, password) {
-        const supabase = createSupabaseBrowserClient();
-        if (supabase) {
-          const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-          if (error) throw error;
-          if (data.user) {
-            const profile = {
-              id: data.user.id,
-              email: data.user.email ?? email,
-              displayName: data.user.user_metadata.display_name ?? "Athlete",
-              createdAt: data.user.created_at,
-            };
-            setStore(loadStore(profile));
-            setIsDemoMode(false);
-            setAuthMode("signed-in");
-            toast.success("Signed in");
-            return;
-          }
-        }
         const cloud = await cloudSignIn(email, password);
         if (cloud) {
           window.localStorage.setItem(CLOUD_TOKEN_KEY, cloud.token);
           window.localStorage.setItem(ACTIVE_USER_KEY, JSON.stringify(cloud.profile));
-          setStore(cloud.store);
+          setStore(applyDefaultTrainingPlan(cloud.store));
           setIsDemoMode(false);
           setAuthMode("signed-in");
           toast.success("Signed in with cloud sync");
@@ -162,24 +128,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         toast.success("Signed in locally");
       },
       async signUp(email, password, displayName) {
-        const supabase = createSupabaseBrowserClient();
-        if (supabase) {
-          const { data, error } = await supabase.auth.signUp({ email, password, options: { data: { display_name: displayName } } });
-          if (error) throw error;
-          if (data.user) {
-            const profile = { id: data.user.id, email, displayName, createdAt: data.user.created_at };
-            setStore(loadStore(profile));
-            setIsDemoMode(false);
-            setAuthMode("signed-in");
-            toast.success("Account created");
-            return;
-          }
-        }
         const cloud = await cloudSignUp(email, password, displayName);
         if (cloud) {
           window.localStorage.setItem(CLOUD_TOKEN_KEY, cloud.token);
           window.localStorage.setItem(ACTIVE_USER_KEY, JSON.stringify(cloud.profile));
-          setStore(cloud.store);
+          setStore(applyDefaultTrainingPlan(cloud.store));
           setIsDemoMode(false);
           setAuthMode("signed-in");
           toast.success("Cloud account created");
@@ -198,11 +151,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         toast.success("Demo mode ready");
       },
       async signOut() {
-        const supabase = createSupabaseBrowserClient();
-        if (supabase) await supabase.auth.signOut();
-        window.localStorage.removeItem(ACTIVE_USER_KEY);
         window.localStorage.removeItem(CLOUD_TOKEN_KEY);
-        setAuthMode("signed-out");
+        const next = loadStore(demoProfile);
+        setStore(next);
+        setIsDemoMode(true);
+        setAuthMode("signed-in");
       },
       updateSettings(settings) {
         setStore((current) => ({ ...current, settings: { ...current.settings, ...settings } }));
@@ -437,7 +390,7 @@ function storageKey(userId: string) {
 
 function loadStore(profile: UserProfile): WorkoutStore {
   const existing = window.localStorage.getItem(storageKey(profile.id));
-  if (existing) return JSON.parse(existing) as WorkoutStore;
+  if (existing) return applyDefaultTrainingPlan(JSON.parse(existing) as WorkoutStore);
   return createSeedStore(profile);
 }
 
@@ -476,7 +429,7 @@ async function loadCloudStore(token: string): Promise<{ profile: UserProfile; st
   if (!response.ok) return null;
   const body = (await response.json()) as { profile: UserProfile; store: WorkoutStore | null };
   if (!body.store) return null;
-  return { profile: body.profile, store: body.store };
+  return { profile: body.profile, store: applyDefaultTrainingPlan(body.store) };
 }
 
 async function syncCloudStore(token: string, store: WorkoutStore) {

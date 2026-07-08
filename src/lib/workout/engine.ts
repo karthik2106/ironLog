@@ -69,7 +69,7 @@ function createWorkoutExercise(store: WorkoutStore, routineExercise: RoutineExer
     id: workoutExerciseId,
     sessionId: "",
     exerciseId: routineExercise.exerciseId,
-    exerciseNameSnapshot: exercise?.name ?? routineExercise.exerciseNameSnapshot,
+    exerciseNameSnapshot: routineExercise.exerciseNameSnapshot,
     primaryMuscleSnapshot: exercise?.primaryMuscle ?? "Chest",
     routineExerciseId: routineExercise.id,
     sortOrder: routineExercise.sortOrder,

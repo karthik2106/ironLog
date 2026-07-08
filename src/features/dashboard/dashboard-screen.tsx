@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowUpRight, Flame, Play, Trophy } from "lucide-react";
+import { ArrowUpRight, Dumbbell, Play, Trophy } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Area, AreaChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { Button } from "@/components/ui/button";
@@ -12,8 +12,6 @@ import { useApp } from "@/features/auth/app-provider";
 import { formatDate, formatDuration, formatShortDate } from "@/lib/utils";
 import { estimatedOneRepMax, summarizeWorkout } from "@/lib/workout/engine";
 
-const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-
 export function DashboardScreen() {
   const { store } = useApp();
   const [nowMs, setNowMs] = useState(() => Date.now());
@@ -23,9 +21,7 @@ export function DashboardScreen() {
   }, []);
   const active = store.sessions.find((session) => session.status === "active");
   const completed = store.sessions.filter((session) => session.status === "completed");
-  const weekStart = startOfWeek(new Date(), store.settings.weekStartDay);
-  const thisWeek = completed.filter((session) => new Date(session.startedAt) >= weekStart);
-  const setsThisWeek = thisWeek.flatMap((session) => session.exercises).flatMap((exercise) => exercise.sets).filter((set) => set.completedAt).length;
+  const completedSets = completed.flatMap((session) => session.exercises).flatMap((exercise) => exercise.sets).filter((set) => set.completedAt).length;
   const lastWorkout = completed[0];
   const chartData = completed
     .slice(0, 8)
@@ -73,31 +69,13 @@ export function DashboardScreen() {
         )}
 
         <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          <Metric title="Workouts this week" value={thisWeek.length.toString()} subtitle="Scheduled PPL sessions" />
-          <Metric title="Training streak" value={`${currentStreak(completed)}`} subtitle="Consecutive training days" icon={<Flame className="size-5 text-accent" />} />
-          <Metric title="Working sets" value={setsThisWeek.toString()} subtitle="Completed this week" />
+          <Metric title="Total workouts" value={completed.length.toString()} subtitle="Completed sessions" icon={<Dumbbell className="size-5 text-accent" />} />
+          <Metric title="Working sets" value={completedSets.toString()} subtitle="All completed sets" />
           <Metric title="Recent PRs" value={store.personalRecords.slice(0, 7).length.toString()} subtitle="Best lifts captured" icon={<Trophy className="size-5 text-accent" />} />
+          <Metric title="Available routines" value={store.routines.filter((routine) => !routine.archivedAt).length.toString()} subtitle="Push A, Pull A, Legs, Push B, Pull B" />
         </section>
 
         <section className="grid gap-4 lg:grid-cols-[1fr_380px]">
-          <Card>
-            <CardHeader>
-              <CardTitle>Weekly schedule</CardTitle>
-              <CardDescription>Your editable Push, Pull, Legs plan for the week.</CardDescription>
-            </CardHeader>
-            <CardContent className="grid gap-3 sm:grid-cols-7">
-              {days.map((day, index) => {
-                const routine = store.routines.find((item) => !item.archivedAt && item.scheduledDays.includes(index));
-                return (
-                  <div key={day} className="rounded-2xl border border-border bg-black/20 p-3">
-                    <p className="text-xs text-muted">{day}</p>
-                    <p className="mt-2 min-h-8 text-sm font-semibold">{routine?.name ?? "Rest"}</p>
-                  </div>
-                );
-              })}
-            </CardContent>
-          </Card>
-
           <Card>
             <CardHeader>
               <CardTitle>Last completed</CardTitle>
@@ -112,13 +90,11 @@ export function DashboardScreen() {
                   </p>
                 </div>
               ) : (
-                <p className="text-sm leading-6 text-muted">Start with Push, Pull, or Legs. IronLog will build your history from completed sets.</p>
+                <p className="text-sm leading-6 text-muted">Start with Push A, Pull A, Legs, Push B, or Pull B. IronLog will build your history from completed sets.</p>
               )}
             </CardContent>
           </Card>
-        </section>
 
-        <section className="grid gap-4 lg:grid-cols-[1fr_380px]">
           <Card>
             <CardHeader>
               <CardTitle>Strength trend</CardTitle>
@@ -173,25 +149,4 @@ function Metric({ title, value, subtitle, icon }: { title: string; value: string
       </CardContent>
     </Card>
   );
-}
-
-function startOfWeek(date: Date, weekStartDay: number) {
-  const next = new Date(date);
-  const diff = (next.getDay() - weekStartDay + 7) % 7;
-  next.setDate(next.getDate() - diff);
-  next.setHours(0, 0, 0, 0);
-  return next;
-}
-
-function currentStreak(sessions: { startedAt: string }[]) {
-  if (sessions.length === 0) return 0;
-  const uniqueDays = new Set(sessions.map((session) => new Date(session.startedAt).toDateString()));
-  let streak = 0;
-  const cursor = new Date();
-  for (let index = 0; index < 365; index += 1) {
-    if (!uniqueDays.has(cursor.toDateString())) break;
-    streak += 1;
-    cursor.setDate(cursor.getDate() - 1);
-  }
-  return streak;
 }

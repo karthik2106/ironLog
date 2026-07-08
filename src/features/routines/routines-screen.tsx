@@ -66,22 +66,6 @@ export function RoutinesScreen() {
                   <Input id="routine-name" value={selected.name} onChange={(event) => app.renameRoutine(selected.id, event.target.value)} />
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  {[0, 1, 2, 3, 4, 5, 6].map((day) => (
-                    <Button
-                      key={day}
-                      size="sm"
-                      variant={selected.scheduledDays.includes(day) ? "default" : "secondary"}
-                      onClick={() => {
-                        const days = selected.scheduledDays.includes(day)
-                          ? selected.scheduledDays.filter((value) => value !== day)
-                          : [...selected.scheduledDays, day].sort();
-                        app.updateRoutineSchedule(selected.id, days);
-                        toast.success("Schedule updated");
-                      }}
-                    >
-                      {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][day]}
-                    </Button>
-                  ))}
                   <Button variant="secondary" onClick={() => app.duplicateRoutineById(selected.id)}>
                     <Copy className="size-4" />
                     Duplicate
